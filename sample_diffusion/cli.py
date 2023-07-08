@@ -31,15 +31,15 @@ def run(args):
     )
 
     args["sampler"] = (
-        SamplerType[args.get("sampler_type")]
-        if isinstance(args.get("sampler_type"), str)
-        else args.get("sampler_type")
+        SamplerType[args.get("sampler")]
+        if isinstance(args.get("sampler"), str)
+        else args.get("sampler")
     )
 
     args["schedule"] = (
-        SchedulerType[args.get("scheduler_type")]
-        if isinstance(args.get("scheduler_type"), str)
-        else args.get("scheduler_type")
+        SchedulerType[args.get("schedule")]
+        if isinstance(args.get("schedule"), str)
+        else args.get("schedule")
     )
 
     args["mode"] = (
