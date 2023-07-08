@@ -30,13 +30,13 @@ def run(args):
         else args.get("modeltype")
     )
 
-    args["sampler_type"] = (
+    args["sampler"] = (
         SamplerType[args.get("sampler_type")]
         if isinstance(args.get("sampler_type"), str)
         else args.get("sampler_type")
     )
 
-    args["scheduler_type"] = (
+    args["schedule"] = (
         SchedulerType[args.get("scheduler_type")]
         if isinstance(args.get("scheduler_type"), str)
         else args.get("scheduler_type")
