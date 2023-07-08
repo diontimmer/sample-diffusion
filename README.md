@@ -4,50 +4,26 @@ A Python library and CLI for generating audio samples using Harmonai [Dance Diff
 
 🚧 This project is early in development. Expect breaking changes! 🚧
 
+This is my personal fork, its pip installable and has some extra modules.
+
 ## Features
 
-- A CLI for generating audio samples from the command line using Dance Diffusion models. (`cli.py`)
-- A script for reducing the file size of Dance Diffusion models by removing data that is only needed for training and not inference. (`scripts/trim_model.py`)
+- A CLI for generating audio samples from the command line using Dance Diffusion models. (`python -m sample_diffusion.cli`)
+- A script for reducing the file size of Dance Diffusion models by removing data that is only needed for training and not inference. (`python -m sample_diffusion.scripts.trim_model`)
 
 ## Installation
 
 ### Requirements
 
 - [git](https://git-scm.com/downloads) (to clone the repo)
-- [conda](https://docs.conda.io/en/latest/) (to set up the python environment)
 
-`conda` can be installed through [Anaconda](https://www.anaconda.com) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html). To run on an Apple Silicon device, you will need to use a conda installation that includes Apple Silicon support, such as [Miniforge](https://github.com/conda-forge/miniforge).
-
-### Cloning the repo
-
-Clone the repo and `cd` into it:
+### Install
 
 ```sh
-git clone https://github.com/sudosilico/sample-diffusion
-cd sample-diffusion
+pip install git+https://github.com/diontimmer/sample-diffusion-lib
 ```
 
-### Setting up the conda environment
-
-Create the `conda` environment:
-
-```sh
-# If you're not running on an Apple Silicon machine:
-conda env create -f environment.yml
-
-# For Apple Silicon machines:
-conda env create -f environment-mac.yml
-```
-
-This may take a few minutes as it will install all the necessary Python dependencies so that they will be available to the CLI script.
-
-> Note: You must activate the `dd` conda environment after creating it. You can do this by running `conda activate dd` in the terminal. You will need to do this every time you open a new terminal window. Learn more about [conda environments.](https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html)
-
-```sh
-conda activate dd
-```
-
-## Using the `cli.py` CLI
+## Using the CLI
 
 ### Generating samples
 
@@ -57,7 +33,7 @@ Pass a custom model path and the output folder as arguments (will create folder 
 python -m sample_diffusion.cli --model "models/DD/some-model.ckpt" --output "audio_output"
 ```
 
-### `cli.py` Command Line Arguments
+### `cli` Command Line Arguments
 
 | argument                  | type             | default                | desc                                                                                   |
 |---------------------------|------------------|------------------------|----------------------------------------------------------------------------------------|
@@ -90,18 +66,18 @@ python -m sample_diffusion.cli --model "models/DD/some-model.ckpt" --output "aud
 ### Using args.json
 Instead of specifying all the necessary arguments each time we encourage you to try using the args.json file provided with this library:
 ```sh
-python cli.py --argsfile 'args.json'
+python -m sample_diffusion.cli --argsfile 'args.json'
 ```
 To change any settings you can edit the args.json file.
 
 ## Using the model trimming script
 
-`scripts/trim_model.py` can be used to reduce the file size of Dance Diffusion models by removing data that is only needed for training and not inference. For our first models, this reduced the model size by about 75% (from 3.46 GB to 0.87 GB).
+`python -m sample_diffusion.scripts.trim_model` can be used to reduce the file size of Dance Diffusion models by removing data that is only needed for training and not inference. For our first models, this reduced the model size by about 75% (from 3.46 GB to 0.87 GB).
 
 To use it, simply pass the path to the model you want to trim as an argument:
 
 ```sh
-python scripts/trim_model.py models/model.ckpt
+python -m sample_diffusion.scripts.trim_model models/model.ckpt
 ```
 
 This will create a new model file at `models/model_trim.ckpt`.
