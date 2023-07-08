@@ -15,7 +15,8 @@ This is my personal fork, its pip installable and has some extra modules.
 
 ### Requirements
 
-- [git](https://git-scm.com/downloads) (to clone the repo)
+- [pytorch-cuda](https://pytorch.org/get-started/locally/) (for CUDA support)
+- python 3.10
 
 ### Install
 
