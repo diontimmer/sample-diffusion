@@ -51,21 +51,11 @@ conda activate dd
 
 ### Generating samples
 
-Make a `models` folder and place your model in `models/DD/model.ckpt`, then run the generator:
+Pass a custom model path and the output folder as arguments (will create folder if does not exist):
 
 ```sh
-python cli.py
+python -m sample_diffusion.cli --model "models/DD/some-model.ckpt" --output "audio_output"
 ```
-
-Alternatively, you can pass a custom model path as an argument instead of using the `models/DD/model.ckpt` default path:
-
-```sh
-python cli.py --model models/DD/some-other-model.ckpt
-```
-
-Your audio samples will then be in one of the following folders:
-
-- `audio/Output/DD/{mode}/{seed}_{steps}`
 
 ### `cli.py` Command Line Arguments
 
