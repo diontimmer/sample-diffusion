@@ -80,11 +80,12 @@ def main():
     )
 
     response = request_handler.process_request(request)
+    os.makedirs(args.get("output"), exist_ok=True)
     save_audio(
         (0.5 * response.result).clamp(-1, 1)
         if (args.get("tame") == True)
         else response.result,
-        f"audio/Output/{args.get('model_type')}/{args.get('mode')}/",
+        f"{args.get('output')}/{args.get('model_type')}/{args.get('mode')}/",
         args.get("sample_rate"),
         f"{seed}",
     )
@@ -140,8 +141,8 @@ def parse_cli_args():
     parser.add_argument(
         "--model",
         type=str,
-        default="models/DD/model.ckpt",
-        help="Path to the model checkpoint file to be used (default: models/DD/model.ckpt).",
+        help="Path to the model checkpoint file to be used.",
+        required=True,
     )
     parser.add_argument(
         "--model_type",
@@ -255,6 +256,12 @@ def parse_cli_args():
     )
     parser.add_argument(
         "--inpaint_args", type=json.loads, default={}, help="Arguments for inpainting."
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="sample_diffusion_output",
+        help="The folder to save the output to.",
     )
 
     args = parser.parse_args()
