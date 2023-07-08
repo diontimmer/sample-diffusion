@@ -6,13 +6,13 @@ from setuptools import setup, find_packages
 VERSION = {}
 
 setup(
-    name="Sample Diffusion",
+    name="sample_diffusion",
     author="sudosilico, mrhyazinth",
     author_email="",
     url="",
     description="A Python library and CLI for generating audio samples using Harmonai Dance Diffusion models.",
-    version=VERSION.get("__version__", "0.0.1"),
-    packages=["sample_diffusion"],
+    version=VERSION.get("__version__", "0.0.2"),
+    packages=find_packages(),
     install_requires=[
         "torch",
         "torchaudio",

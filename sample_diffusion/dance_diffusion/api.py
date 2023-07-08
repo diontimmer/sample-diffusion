@@ -31,7 +31,7 @@ class Request:
         model_type: ModelType,
         model_chunk_size: int,
         model_sample_rate: int,
-        **kwargs
+        **kwargs,
     ):
         self.request_type = request_type
         self.model_path = model_path
@@ -99,14 +99,29 @@ class RequestHandler:
         return Response(tensor_result)
 
     def load_model(self, model_type, model_path, chunk_size, sample_rate):
-        wrappers_by_model_type = {
-            ModelType.DD: [DDModelWrapper, DDInference],
-            ModelType.LDD: [VXLDDModelWrapper, VXLDDInference],
-        }
+        try:
+            # Ensure that model_type is a valid ModelType enum
+            if isinstance(model_type, str):
+                model_type = ModelType[model_type]
+            assert isinstance(model_type, ModelType)
 
-        [Wrapper, Inference] = wrappers_by_model_type.get(model_type, [None, None])
+            # Convert the model_type enum to its string representation
+            model_type_str = model_type.name
 
-        if Wrapper:
+            # Dynamically import the required modules
+            wrapper_module = __import__(
+                f"sample_diffusion.dance_diffusion.{model_type_str.lower()}.model",
+                fromlist=[f"{model_type_str}ModelWrapper"],
+            )
+            inference_module = __import__(
+                f"sample_diffusion.dance_diffusion.{model_type_str.lower()}.inference",
+                fromlist=[f"{model_type_str}Inference"],
+            )
+
+            # Dynamically create instances of the required classes
+            Wrapper = getattr(wrapper_module, f"{model_type_str}ModelWrapper")
+            Inference = getattr(inference_module, f"{model_type_str}Inference")
+
             self.model_wrapper = Wrapper()
             self.model_wrapper.load(
                 model_path,
@@ -122,21 +137,24 @@ class RequestHandler:
                 self.use_autocast,
                 self.model_wrapper,
             )
-        else:
-            raise ValueError("Unexpected ModelType in load_model")
+
+        except Exception as e:
+            raise ValueError("Unexpected error in load_model: " + str(e))
+
+    def validate_model_type(self, model_type):
+        if model_type not in [e for e in ModelType]:
+            raise ValueError(f"Unexpected ModelType: {model_type}")
 
     def handle_generation(self, request: Request, callback: Callable) -> Response:
         kwargs = request.kwargs.copy()
+        self.validate_model_type(request.model_type)
 
-        if request.model_type in [ModelType.DD, ModelType.LDD]:
-            return self.inference.generate(
-                callback=callback,
-                scheduler=kwargs["scheduler_type"],
-                sampler=kwargs["sampler_type"],
-                **kwargs
-            )
-        else:
-            raise ValueError("Unexpected ModelType in handle_generation")
+        return self.inference.generate(
+            callback=callback,
+            scheduler=kwargs["scheduler_type"],
+            sampler=kwargs["sampler_type"],
+            **kwargs,
+        )
 
     def handle_variation(self, request: Request, callback: Callable) -> torch.Tensor:
         kwargs = request.kwargs.copy()
@@ -144,16 +162,14 @@ class RequestHandler:
             expansion_map=[kwargs["batch_size"]],
             audio_source=kwargs["audio_source"][None, :, :],
         )
+        self.validate_model_type(request.model_type)
 
-        if request.model_type in [ModelType.DD, ModelType.LDD]:
-            return self.inference.generate_variation(
-                callback=callback,
-                scheduler=kwargs["scheduler_type"],
-                sampler=kwargs["sampler_type"],
-                **kwargs
-            )
-        else:
-            raise ValueError("Unexpected ModelType in handle_variation")
+        return self.inference.generate_variation(
+            callback=callback,
+            scheduler=kwargs["scheduler_type"],
+            sampler=kwargs["sampler_type"],
+            **kwargs,
+        )
 
     def handle_interpolation(
         self, request: Request, callback: Callable
@@ -164,16 +180,14 @@ class RequestHandler:
             audio_source=kwargs["audio_source"][None, :, :],
             audio_target=kwargs["audio_target"][None, :, :],
         )
+        self.validate_model_type(request.model_type)
 
-        if request.model_type in [ModelType.DD, ModelType.LDD]:
-            return self.inference.generate_interpolation(
-                callback=callback,
-                scheduler=kwargs["scheduler_type"],
-                sampler=kwargs["sampler_type"],
-                **kwargs
-            )
-        else:
-            raise ValueError("Unexpected ModelType in handle_interpolation")
+        return self.inference.generate_interpolation(
+            callback=callback,
+            scheduler=kwargs["scheduler_type"],
+            sampler=kwargs["sampler_type"],
+            **kwargs,
+        )
 
     def handle_inpainting(self, request: Request, callback: Callable) -> torch.Tensor:
         kwargs = request.kwargs.copy()
@@ -181,16 +195,14 @@ class RequestHandler:
             expansion_map=[kwargs["batch_size"]],
             audio_source=kwargs["audio_source"][None, :, :],
         )
+        self.validate_model_type(request.model_type)
 
-        if request.model_type == [ModelType.DD, ModelType.LDD]:
-            return self.inference.generate_inpainting(
-                callback=callback,
-                scheduler=kwargs["scheduler_type"],
-                sampler=kwargs["sampler_type"],
-                **kwargs
-            )
-        else:
-            raise ValueError("Unexpected ModelType in handle_inpainting")
+        return self.inference.generate_inpainting(
+            callback=callback,
+            scheduler=kwargs["scheduler_type"],
+            sampler=kwargs["sampler_type"],
+            **kwargs,
+        )
 
     def handle_extension(self, request: Request, callback: Callable) -> torch.Tensor:
         kwargs = request.kwargs.copy()
@@ -198,13 +210,11 @@ class RequestHandler:
             expansion_map=[kwargs["batch_size"]],
             audio_source=kwargs["audio_source"][None, :, :],
         )
+        self.validate_model_type(request.model_type)
 
-        if request.model_type in [ModelType.DD, ModelType.LDD]:
-            return self.inference.generate_extension(
-                callback=callback,
-                scheduler=kwargs["scheduler_type"],
-                sampler=kwargs["sampler_type"],
-                **kwargs
-            )
-        else:
-            raise ValueError("Unexpected ModelType in handle_extension")
+        return self.inference.generate_extension(
+            callback=callback,
+            scheduler=kwargs["scheduler_type"],
+            sampler=kwargs["sampler_type"],
+            **kwargs,
+        )

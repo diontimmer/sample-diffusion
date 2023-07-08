@@ -1,17 +1,17 @@
 import json, torch, argparse, os, logging, sys
 
 
-from sample_diffusion.util.util import load_audio, save_audio, crop_audio
-from sample_diffusion.util.platform import get_torch_device_type
-from sample_diffusion.dance_diffusion.api import (
+from .util.util import load_audio, save_audio, crop_audio
+from .util.platform import get_torch_device_type
+from .dance_diffusion.api import (
     RequestHandler,
     Request,
     Response,
     RequestType,
     ModelType,
 )
-from sample_diffusion.diffusion_library.sampler import SamplerType
-from sample_diffusion.diffusion_library.scheduler import SchedulerType
+from .diffusion_library.sampler import SamplerType
+from .diffusion_library.scheduler import SchedulerType
 from transformers import logging as transformers_logging
 
 
@@ -21,6 +21,9 @@ def main():
 
 
 def run(args):
+    if args.get("argsfile") is None and args.get("model") is None:
+        raise ValueError("Either argsfile or model must be provided.")
+
     device_type_accelerator = (
         args.get("device_accelerator")
         if (args.get("device_accelerator") != None)
@@ -49,8 +52,6 @@ def run(args):
         use_autocast=args.get("use_autocast"),
     )
 
-    print(f"Using accelerator: {device_type_accelerator}, Seed: {seed}.")
-
     os.makedirs(args.get("output"), exist_ok=True)
 
     paths = []
@@ -62,6 +63,9 @@ def run(args):
             else torch.randint(
                 0, 4294967294, [1], device=device_type_accelerator
             ).item()
+        )
+        print(
+            f"Now generating batch {i+1}/{args.get('batch_loops')} | Using accelerator: {device_type_accelerator} | Seed: {seed}."
         )
         request = Request(
             request_type=args.get("mode"),
@@ -153,7 +157,7 @@ def parse_cli_args():
         "--model",
         type=str,
         help="Path to the model checkpoint file to be used.",
-        required=True,
+        default=None,
     )
     parser.add_argument(
         "--model_type",
