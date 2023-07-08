@@ -23,6 +23,7 @@ setup(
         "black",
         "diffusers",
         "transformers",
+        "archisound",
     ],
     classifiers=[
         "Development Status :: 1 - Planning",

@@ -17,7 +17,10 @@ from transformers import logging as transformers_logging
 
 def main():
     args = parse_cli_args()
+    run(args)
 
+
+def run(args):
     device_type_accelerator = (
         args.get("device_accelerator")
         if (args.get("device_accelerator") != None)
@@ -46,49 +49,57 @@ def main():
         use_autocast=args.get("use_autocast"),
     )
 
-    seed = (
-        args.get("seed")
-        if (args.get("seed") != -1)
-        else torch.randint(0, 4294967294, [1], device=device_type_accelerator).item()
-    )
     print(f"Using accelerator: {device_type_accelerator}, Seed: {seed}.")
 
-    request = Request(
-        request_type=args.get("mode"),
-        model_path=args.get("model"),
-        model_type=args.get("model_type"),
-        model_chunk_size=args.get("chunk_size"),
-        model_sample_rate=args.get("sample_rate"),
-        seed=seed,
-        batch_size=args.get("batch_size"),
-        audio_source=load_input(args.get("audio_source")),
-        audio_target=load_input(args.get("audio_target")),
-        mask=torch.load(args.get("mask")) if (args.get("mask") != None) else None,
-        noise_level=args.get("noise_level"),
-        interpolation_positions=args.get("interpolations")
-        if (args.get("interpolations_linear") == None)
-        else torch.linspace(
-            0, 1, args.get("interpolations_linear"), device=device_accelerator
-        ),
-        keep_start=args.get("keep_start"),
-        steps=args.get("steps"),
-        sampler_type=args.get("sampler"),
-        sampler_args=args.get("sampler_args"),
-        scheduler_type=args.get("schedule"),
-        scheduler_args=args.get("schedule_args"),
-        inpainting_args=args.get("inpainting_args"),
-    )
-
-    response = request_handler.process_request(request)
     os.makedirs(args.get("output"), exist_ok=True)
-    save_audio(
-        (0.5 * response.result).clamp(-1, 1)
-        if (args.get("tame") == True)
-        else response.result,
-        f"{args.get('output')}/{args.get('model_type')}/{args.get('mode')}/",
-        args.get("sample_rate"),
-        f"{seed}",
-    )
+
+    paths = []
+
+    for i in range(args.get("batch_loops")):
+        seed = (
+            args.get("seed")
+            if (args.get("seed") != -1)
+            else torch.randint(
+                0, 4294967294, [1], device=device_type_accelerator
+            ).item()
+        )
+        request = Request(
+            request_type=args.get("mode"),
+            model_path=args.get("model"),
+            model_type=args.get("model_type"),
+            model_chunk_size=args.get("chunk_size"),
+            model_sample_rate=args.get("sample_rate"),
+            seed=seed,
+            batch_size=args.get("batch_size"),
+            audio_source=load_input(args.get("audio_source")),
+            audio_target=load_input(args.get("audio_target")),
+            mask=torch.load(args.get("mask")) if (args.get("mask") != None) else None,
+            noise_level=args.get("noise_level"),
+            interpolation_positions=args.get("interpolations")
+            if (args.get("interpolations_linear") == None)
+            else torch.linspace(
+                0, 1, args.get("interpolations_linear"), device=device_accelerator
+            ),
+            keep_start=args.get("keep_start"),
+            steps=args.get("steps"),
+            sampler_type=args.get("sampler"),
+            sampler_args=args.get("sampler_args"),
+            scheduler_type=args.get("schedule"),
+            scheduler_args=args.get("schedule_args"),
+            inpainting_args=args.get("inpainting_args"),
+        )
+
+        response = request_handler.process_request(request)
+        loop_paths = save_audio(
+            (0.5 * response.result).clamp(-1, 1)
+            if (args.get("tame") == True)
+            else response.result,
+            f"{args.get('output')}/{args.get('model_type')}/{args.get('mode')}/",
+            args.get("sample_rate"),
+            f"{seed}",
+        )
+        paths.extend(loop_paths)
+    return paths
 
 
 def str2bool(value):
@@ -181,6 +192,12 @@ def parse_cli_args():
         type=int,
         default=1,
         help="The maximal number of samples to be produced per batch.",
+    )
+    parser.add_argument(
+        "--batch_loops",
+        type=int,
+        default=1,
+        help="The number of batches the generation will output.",
     )
     parser.add_argument(
         "--audio_source", type=str, default=None, help="Path to the audio source."
