@@ -24,6 +24,30 @@ def run(args):
     if args.get("argsfile") is None and args.get("model") is None:
         raise ValueError("Either argsfile or model must be provided.")
 
+    args["modeltype"] = (
+        ModelType[args.get("modeltype")]
+        if isinstance(args.get("modeltype"), str)
+        else args.get("modeltype")
+    )
+
+    args["sampler_type"] = (
+        SamplerType[args.get("sampler_type")]
+        if isinstance(args.get("sampler_type"), str)
+        else args.get("sampler_type")
+    )
+
+    args["scheduler_type"] = (
+        SchedulerType[args.get("scheduler_type")]
+        if isinstance(args.get("scheduler_type"), str)
+        else args.get("scheduler_type")
+    )
+
+    args["mode"] = (
+        RequestType[args.get("mode")]
+        if isinstance(args.get("mode"), str)
+        else args.get("mode")
+    )
+
     device_type_accelerator = (
         args.get("device_accelerator")
         if (args.get("device_accelerator") != None)
