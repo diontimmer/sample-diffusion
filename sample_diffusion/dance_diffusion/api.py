@@ -8,12 +8,6 @@ from .base.type import ModelType
 from .base.model import ModelWrapperBase
 from .base.inference import InferenceBase
 
-from .dd.model import DDModelWrapper
-from .dd.inference import DDInference
-
-from .vxldd.model import VXLDDModelWrapper
-from .vxldd.inference import VXLDDInference
-
 
 class RequestType(str, enum.Enum):
     Generation = "Generation"

@@ -1,4 +1,5 @@
 import torch
+
 from diffusion.utils import t_to_alpha_sigma
 from k_diffusion.external import VDenoiser
 
@@ -9,7 +10,7 @@ from sample_diffusion.dance_diffusion.base.model import ModelWrapperBase
 from sample_diffusion.dance_diffusion.base.inference import InferenceBase
 
 
-class VXLDDInference(InferenceBase):
+class CVXLDDInference(InferenceBase):
     def __init__(
         self,
         device_accelerator: torch.device = None,
@@ -35,6 +36,18 @@ class VXLDDInference(InferenceBase):
         **kwargs
     ):
         self.generator.manual_seed(seed)
+
+        with self.offload_context(self.model.t5_embedder):
+            embedding = self.model.t5_embedder(sampler_args["text_condition"]).to(
+                self.device_accelerator
+            )
+            negative_embedding = (
+                None
+                if (sampler_args["inverse_text_condition"] == None)
+                else self.model.t5_embedder(sampler_args["inverse_text_condition"]).to(
+                    self.device_accelerator
+                )
+            )
 
         step_list = scheduler.get_step_list(
             steps, self.device_accelerator.type, **scheduler_args
@@ -64,7 +77,20 @@ class VXLDDInference(InferenceBase):
             model = VDenoiser(self.model.diffusion)
 
         with self.offload_context(self.model.diffusion):
-            x_0 = sampler.sample(model, x_T, step_list, callback, **sampler_args)
+            x_0 = sampler.sample(
+                model,
+                x_T,
+                step_list,
+                callback,
+                {
+                    "extra_args": {
+                        "embedding": embedding,
+                        "negative_embedding": negative_embedding,
+                        "embedding_scale": sampler_args["cfg_scale"],
+                    }
+                },
+                **sampler_args
+            )
 
         with self.offload_context(self.model.ae_decoder):
             return self.model.ae_decoder(x_0, num_steps=20)
@@ -85,6 +111,17 @@ class VXLDDInference(InferenceBase):
         **kwargs
     ) -> torch.Tensor:
         self.generator.manual_seed(seed)
+        with self.offload_context(self.model.t5_embedder):
+            embedding = self.model.t5_embedder(sampler_args["text_condition"]).to(
+                self.device_accelerator
+            )
+            negative_embedding = (
+                None
+                if (sampler_args["inverse_text_condition"] == None)
+                else self.model.t5_embedder(sampler_args["inverse_text_condition"]).to(
+                    self.device_accelerator
+                )
+            )
 
         audio_source = self.expand(audio_source, expansion_map)
 
@@ -125,9 +162,20 @@ class VXLDDInference(InferenceBase):
             )
             model = VDenoiser(self.model.diffusion)
 
-        with self.offload_context(self.model.model):
+        with self.offload_context(self.model.diffusion):
             x_0 = sampler.sample(
-                model, x_T, step_list, callback, **sampler_args
+                model,
+                x_T,
+                step_list,
+                callback,
+                {
+                    "extra_args": {
+                        "embedding": embedding,
+                        "negative_embedding": negative_embedding,
+                        "embedding_scale": sampler_args["text_condition"],
+                    }
+                },
+                **sampler_args
             ).float()
 
         with self.offload_context(self.model.ae_decoder):

@@ -1,43 +1,70 @@
+from dance_diffusion.base.model import ModelWrapperBase
+
 import torch
+import numpy as np
+
 from torch import nn
+from sample_diffusion.dance_diffusion.base.type import ModelType
 from typing import Callable
 
-from archisound import ArchiSound
-from sample_diffusion.dance_diffusion.base.model import ModelWrapperBase
-from sample_diffusion.dance_diffusion.base.type import ModelType
-from torch import nn
-
-from sample_diffusion.dance_diffusion.base.latent_unet import DiffusionUnet1D
+from sample_diffusion.dance_diffusion.base.t5 import T5Embedder
+from sample_diffusion.dance_diffusion.base.adp_modules import UNetCFG1d
 from archisound import ArchiSound
 
 
-class VXLatentAudioDiffusion(nn.Module):
-    def __init__(self, autoencoder: ArchiSound, **model_kwargs):
+class CVXLatentAudioDiffusion(nn.Module):
+    def __init__(
+        self,
+        autoencoder: ArchiSound,
+        aec_latent_dim: int,
+        aec_downsampling_ratio: int,
+        aec_divisor: float,
+        **model_kwargs,
+    ):
         super().__init__()
 
-        default_model_kwargs = {
-            "io_channels": 32,
-            "n_attn_layers": 4,
-            "channels": [512] * 6 + [1024] * 4,
-            "depth": 10,
-        }
+        self.latent_dim = aec_latent_dim
+        self.downsampling_ratio = aec_downsampling_ratio
+        self.aec_divisor = aec_divisor
 
-        self.latent_dim = 32
-        self.downsampling_ratio = 512
+        embedding_max_len = 64
 
-        self.diffusion = DiffusionUnet1D(**{**default_model_kwargs, **model_kwargs})
+        self.embedder = T5Embedder(
+            model="t5-small", max_length=embedding_max_len
+        ).requires_grad_(False)
+
+        self.embedding_features = 512
+
+        self.diffusion = UNetCFG1d(
+            in_channels=self.latent_dim,
+            context_embedding_features=self.embedding_features,
+            context_embedding_max_length=embedding_max_len + 2,  # 2 for timestep embeds
+            channels=256,
+            resnet_groups=8,
+            kernel_multiplier_downsample=2,
+            multipliers=[2, 3, 3, 4, 4],
+            factors=[1, 2, 4, 4],
+            num_blocks=[3, 3, 3, 3],
+            attentions=[0, 0, 3, 3, 3],
+            attention_heads=12,
+            attention_features=64,
+            attention_multiplier=4,
+            attention_use_rel_pos=True,
+            attention_rel_pos_max_distance=2048,
+            attention_rel_pos_num_buckets=64,
+            use_nearest_upsample=False,
+            use_skip_scale=True,
+            use_context_time=True,
+        )
 
         self.autoencoder = autoencoder
 
-    def forward(self, x, t, **extra_args):
-        return self.diffusion(x, t, **extra_args)
 
-
-class VXLDDModelWrapper(ModelWrapperBase):
+class CVXLDDModelWrapper(ModelWrapperBase):
     def __init__(self):
         super().__init__()
 
-        self.module: VXLatentAudioDiffusion = None
+        self.module: CVXLatentAudioDiffusion = None
         self.model: Callable = None
 
     def load(
@@ -51,9 +78,9 @@ class VXLDDModelWrapper(ModelWrapperBase):
         default_model_config = dict(
             version=[0, 0, 1],
             model_info=dict(
-                name="Very Extra Latent Dance Diffusion Model",
+                name="Conditional Very Extra Latent Dance Diffusion Model",
                 description="v1.0",
-                type=ModelType.VXLDD,
+                type=ModelType.CVXLDD,
                 native_chunk_size=524288,
                 sample_rate=44100,
             ),
@@ -97,16 +124,20 @@ class VXLDDModelWrapper(ModelWrapperBase):
 
         autoencoder = autoencoder.to(device_accelerator)
 
-        self.module = VXLatentAudioDiffusion(autoencoder, **latent_diffusion_config)
+        self.module = CVXLatentAudioDiffusion(
+            autoencoder, 32, 512, 2.5, **latent_diffusion_config
+        )
         self.module.load_state_dict(file["state_dict"], strict=False)  # ?
         self.module.eval().requires_grad_(False)
 
-        self.latent_dim = 32  # self.module.autoencoder.latent_dim
-        self.downsampling_ratio = 512  # self.module.autoencoder.downsampling_ratio
+        self.latent_dim = self.module.autoencoder.latent_dim
+        self.downsampling_ratio = self.module.autoencoder.downsampling_ratio
 
         self.ae_encoder = self.module.autoencoder.encode
 
         self.ae_decoder = self.module.autoencoder.decode
+
+        self.t5_embedder = self.module.embedder
 
         self.diffusion = (
             self.module.diffusion

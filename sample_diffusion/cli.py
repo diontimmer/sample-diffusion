@@ -20,7 +20,7 @@ def main():
     run(args)
 
 
-def run(args):
+def run(args, request_handler=None):
     if args.get("argsfile") is None and args.get("model") is None:
         raise ValueError("Either argsfile or model must be provided.")
 
@@ -69,11 +69,15 @@ def run(args):
         else None
     )
 
-    request_handler = RequestHandler(
-        device_accelerator,
-        device_offload,
-        optimize_memory_use=args.get("optimize_memory_use"),
-        use_autocast=args.get("use_autocast"),
+    request_handler = (
+        RequestHandler(
+            device_accelerator,
+            device_offload,
+            optimize_memory_use=args.get("optimize_memory_use"),
+            use_autocast=args.get("use_autocast"),
+        )
+        if request_handler is None
+        else request_handler
     )
 
     os.makedirs(args.get("output"), exist_ok=True)
@@ -283,7 +287,12 @@ def parse_cli_args():
     parser.add_argument(
         "--sampler_args",
         type=json.loads,
-        default={},
+        default={
+            "aec_divisor": 2.5,
+            "cfg_scale": 3,
+            "text_condition": "",
+            "inverse_text_condition": "",
+        },
         help="Additional arguments of the DD sampler.",
     )
     parser.add_argument(
