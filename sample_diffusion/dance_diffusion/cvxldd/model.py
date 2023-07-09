@@ -1,4 +1,4 @@
-from dance_diffusion.base.model import ModelWrapperBase
+from sample_diffusion.dance_diffusion.base.model import ModelWrapperBase
 
 import torch
 import numpy as np
@@ -30,10 +30,10 @@ class CVXLatentAudioDiffusion(nn.Module):
         embedding_max_len = 64
 
         self.embedder = T5Embedder(
-            model="t5-small", max_length=embedding_max_len
+            model="t5-base", max_length=embedding_max_len
         ).requires_grad_(False)
 
-        self.embedding_features = 512
+        self.embedding_features = 768
 
         self.diffusion = UNetCFG1d(
             in_channels=self.latent_dim,
@@ -130,8 +130,8 @@ class CVXLDDModelWrapper(ModelWrapperBase):
         self.module.load_state_dict(file["state_dict"], strict=False)  # ?
         self.module.eval().requires_grad_(False)
 
-        self.latent_dim = self.module.autoencoder.latent_dim
-        self.downsampling_ratio = self.module.autoencoder.downsampling_ratio
+        self.latent_dim = self.module.latent_dim
+        self.downsampling_ratio = self.module.downsampling_ratio
 
         self.ae_encoder = self.module.autoencoder.encode
 

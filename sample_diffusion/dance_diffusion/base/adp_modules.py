@@ -8,7 +8,7 @@ from einops.layers.torch import Rearrange
 from einops_exts import rearrange_many
 from torch import Tensor, einsum
 
-from .utils import closest_power_2, default, exists, groupby
+from .adp_utils import closest_power_2, default, exists, groupby
 
 """
 Utils
@@ -56,7 +56,6 @@ def Downsample1d(
 def Upsample1d(
     in_channels: int, out_channels: int, factor: int, use_nearest: bool = False
 ) -> nn.Module:
-
     if factor == 1:
         return Conv1d(
             in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1
@@ -334,7 +333,7 @@ class AttentionBase(nn.Module):
         rel_pos_max_distance: Optional[int] = None,
     ):
         super().__init__()
-        self.scale = head_features ** -0.5
+        self.scale = head_features**-0.5
         self.num_heads = num_heads
         self.use_rel_pos = use_rel_pos
         mid_features = head_features * num_heads
@@ -658,7 +657,6 @@ class DownsampleBlock1d(nn.Module):
         channels: Optional[Tensor] = None,
         embedding: Optional[Tensor] = None,
     ) -> Union[Tuple[Tensor, List[Tensor]], Tensor]:
-
         if self.use_pre_downsample:
             x = self.downsample(x)
 
@@ -715,7 +713,7 @@ class UpsampleBlock1d(nn.Module):
         self.use_pre_upsample = use_pre_upsample
         self.use_transformer = num_transformer_blocks > 0
         self.use_skip = use_skip
-        self.skip_scale = 2 ** -0.5 if use_skip_scale else 1.0
+        self.skip_scale = 2**-0.5 if use_skip_scale else 1.0
 
         channels = out_channels if use_pre_upsample else in_channels
 
@@ -776,7 +774,6 @@ class UpsampleBlock1d(nn.Module):
         mapping: Optional[Tensor] = None,
         embedding: Optional[Tensor] = None,
     ) -> Union[Tuple[Tensor, Tensor], Tensor]:
-
         if self.use_pre_upsample:
             x = self.upsample(x)
 
@@ -1183,7 +1180,16 @@ class UNetCFG1d(UNet1d):
         if embedding_scale != 1.0:
             # Compute both normal and fixed embedding outputs
             out = super().forward(x, time, embedding=embedding, **kwargs)
-            out_masked = super().forward(x, time, embedding=(fixed_embedding if(negative_embedding == None) else negative_embedding), **kwargs)
+            out_masked = super().forward(
+                x,
+                time,
+                embedding=(
+                    fixed_embedding
+                    if (negative_embedding == None)
+                    else negative_embedding
+                ),
+                **kwargs,
+            )
             # Scale conditional output using classifier-free guidance
             return out_masked + (out - out_masked) * embedding_scale
         else:
@@ -1272,7 +1278,6 @@ class T5Embedder(nn.Module):
 
     @torch.no_grad()
     def forward(self, texts: List[str]) -> Tensor:
-
         encoded = self.tokenizer(
             texts,
             truncation=True,

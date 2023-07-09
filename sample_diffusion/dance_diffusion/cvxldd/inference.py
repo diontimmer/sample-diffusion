@@ -76,23 +76,17 @@ class CVXLDDInference(InferenceBase):
             )
             model = VDenoiser(self.model.diffusion)
 
+        sampler_args["extra_args"] = {
+            "embedding": embedding,
+            "negative_embedding": negative_embedding,
+            "embedding_scale": sampler_args["cfg_scale"],
+        }
+
         with self.offload_context(self.model.diffusion):
-            x_0 = sampler.sample(
-                model,
-                x_T,
-                step_list,
-                callback,
-                {
-                    "extra_args": {
-                        "embedding": embedding,
-                        "negative_embedding": negative_embedding,
-                        "embedding_scale": sampler_args["cfg_scale"],
-                    }
-                },
-                **sampler_args
-            )
+            x_0 = sampler.sample(model, x_T, step_list, callback, **sampler_args)
 
         with self.offload_context(self.model.ae_decoder):
+            x_0 = x_0 * self.model.module.aec_divisor
             return self.model.ae_decoder(x_0, num_steps=20)
 
     def generate_variation(
@@ -162,21 +156,17 @@ class CVXLDDInference(InferenceBase):
             )
             model = VDenoiser(self.model.diffusion)
 
+        sampler_args["extra_args"] = {
+            "embedding": embedding,
+            "negative_embedding": negative_embedding,
+            "embedding_scale": sampler_args["cfg_scale"],
+        }
+
         with self.offload_context(self.model.diffusion):
             x_0 = sampler.sample(
-                model,
-                x_T,
-                step_list,
-                callback,
-                {
-                    "extra_args": {
-                        "embedding": embedding,
-                        "negative_embedding": negative_embedding,
-                        "embedding_scale": sampler_args["text_condition"],
-                    }
-                },
-                **sampler_args
+                model, x_T, step_list, callback, **sampler_args
             ).float()
 
         with self.offload_context(self.model.ae_decoder):
+            x_0 = x_0 * self.model.module.aec_divisor
             return self.model.ae_decoder(x_0, num_steps=20)
