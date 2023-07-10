@@ -22,6 +22,8 @@ class Request:
         self,
         request_type: RequestType,
         model_path: str,
+        lora_path: str,
+        lora_strength: float,
         model_type: ModelType,
         model_chunk_size: int,
         model_sample_rate: int,
@@ -29,6 +31,8 @@ class Request:
     ):
         self.request_type = request_type
         self.model_path = model_path
+        self.lora_path = lora_path
+        self.lora_strength = lora_strength
         self.model_type = model_type
         self.model_chunk_size = model_chunk_size
         self.model_sample_rate = model_sample_rate
@@ -74,6 +78,18 @@ class RequestHandler:
                 request.model_chunk_size,
                 request.model_sample_rate,
             )
+
+        elif request.lora_path != self.model_wrapper.lora_path:
+            del self.model_wrapper, self.inference
+            self.load_model(
+                request.model_type,
+                request.model_path,
+                request.model_chunk_size,
+                request.model_sample_rate,
+            )
+
+        if request.lora_path != None:
+            self.model_wrapper.apply_lora(request.lora_path, request.lora_strength)
 
         handlers_by_request_type = {
             RequestType.Generation: self.handle_generation,
