@@ -90,7 +90,7 @@ class RequestHandler:
 
         if request.lora_path != None:
             self.model_wrapper.apply_lora(
-                request.lora_path, request.lora_strength, request.device_accelerator
+                request.lora_path, request.lora_strength, self.device_accelerator
             )
 
         handlers_by_request_type = {
