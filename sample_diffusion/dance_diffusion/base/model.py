@@ -39,6 +39,6 @@ class ModelWrapperBase:
             module_class=AudioLoRAModule,
             verbose=False,
         )
-        lora.to(device=self.module.diffusion_ema.device)
+        lora.to(device=self.module.diffusion.device)
         lora.apply_to()
         lora.load_weights(lora_path)
