@@ -29,7 +29,7 @@ class ModelWrapperBase:
 
     def apply_lora(self, lora_path, lora_strength, device):
         print(f"Applying LoRA with strength {lora_strength}: {lora_path}")
-        UNET1D_TARGET_REPLACE_MODULE = ["SelfAttention1d"]
+        UNET1D_TARGET_REPLACE_MODULE = ["SelfAttention1d", "ResConvBlock"]
         lora = AudioLoRANetwork(
             self.module.diffusion_ema,
             target_modules=UNET1D_TARGET_REPLACE_MODULE,
