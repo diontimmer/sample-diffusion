@@ -27,7 +27,7 @@ class ModelWrapperBase:
     ):
         raise NotImplementedError
 
-    def apply_lora(self, lora_path, lora_strength):
+    def apply_lora(self, lora_path, lora_strength, device):
         print(f"Applying LoRA with strength {lora_strength}: {lora_path}")
         UNET1D_TARGET_REPLACE_MODULE = ["SelfAttention1d"]
         lora = AudioLoRANetwork(
@@ -39,6 +39,6 @@ class ModelWrapperBase:
             module_class=AudioLoRAModule,
             verbose=False,
         )
-        lora.to(device=self.module.diffusion.device)
+        lora.to(device=device)
         lora.apply_to()
         lora.load_weights(lora_path)
