@@ -31,7 +31,6 @@ class ModelWrapperBase:
         UNET1D_TARGET_REPLACE_MODULE = ["SelfAttention1d", "ResConvBlock"]
 
         lora_info = torch.load(lora_path)
-        print(lora_info)
         lora_dim = lora_info["unet_loras.0.lora_down.weight"].shape[0]
         del lora_info
 
