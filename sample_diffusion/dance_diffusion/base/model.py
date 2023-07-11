@@ -28,13 +28,22 @@ class ModelWrapperBase:
         raise NotImplementedError
 
     def apply_lora(self, lora_path, lora_strength, device):
-        print(f"Applying LoRA with strength {lora_strength}: {lora_path}")
         UNET1D_TARGET_REPLACE_MODULE = ["SelfAttention1d", "ResConvBlock"]
+
+        lora_info = torch.load(lora_path)
+        print(lora_info)
+        lora_dim = lora_info["unet_loras.0.lora_down.weight"].shape[0]
+        del lora_info
+
+        print(
+            f"Applying LoRAW (RANK:{lora_dim}) with strength {lora_strength}: {lora_path}"
+        )
+
         lora = AudioLoRANetwork(
             self.module.diffusion_ema,
             target_modules=UNET1D_TARGET_REPLACE_MODULE,
             multiplier=lora_strength,
-            lora_dim=16,
+            lora_dim=lora_dim,
             alpha=1,
             module_class=AudioLoRAModule,
             verbose=False,
