@@ -34,7 +34,7 @@ class ModelWrapperBase:
             self.module.diffusion_ema,
             target_modules=UNET1D_TARGET_REPLACE_MODULE,
             multiplier=lora_strength,
-            lora_dim=4,
+            lora_dim=16,
             alpha=1,
             module_class=AudioLoRAModule,
             verbose=False,
