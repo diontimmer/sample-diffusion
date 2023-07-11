@@ -186,6 +186,7 @@ class AudioLoRANetwork(torch.nn.Module):
         return True
 
     def save_weights(self, file, dtype):
+
         state_dict = self.state_dict()
 
         if dtype is not None:
