@@ -76,6 +76,6 @@ class DDModelWrapper(ModelWrapperBase):
             else self.module.diffusion_ema.to(device_accelerator)
         )
 
-        def __del__(self):
-            del self.module
-            del self.model
+    def __del__(self):
+        del self.module
+        del self.model
