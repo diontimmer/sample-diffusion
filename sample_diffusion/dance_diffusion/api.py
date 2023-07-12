@@ -8,6 +8,18 @@ from .base.type import ModelType
 from .base.model import ModelWrapperBase
 from .base.inference import InferenceBase
 
+import gc
+
+import psutil
+
+
+def print_memory():
+    mem_info = psutil.virtual_memory()
+    total_memory = mem_info.total / (1024**3)  # Convert bytes to gigabytes
+    used_memory = (mem_info.total - mem_info.available) / (1024**3)
+    print(f"Total memory: {total_memory} GB")
+    print(f"Used memory: {used_memory} GB")
+
 
 class RequestType(str, enum.Enum):
     Generation = "Generation"
@@ -71,7 +83,8 @@ class RequestHandler:
                 request.model_sample_rate,
             )
         elif request.model_path != self.model_wrapper.path:
-            del self.model_wrapper, self.inference
+            del self.inference, self.model_wrapper
+            gc.collect()
             self.load_model(
                 request.model_type,
                 request.model_path,
@@ -80,7 +93,8 @@ class RequestHandler:
             )
 
         elif request.lora_path != self.model_wrapper.lora_path:
-            del self.model_wrapper, self.inference
+            del self.inference, self.model_wrapper
+            gc.collect()
             self.load_model(
                 request.model_type,
                 request.model_path,
@@ -89,9 +103,12 @@ class RequestHandler:
             )
 
         if request.lora_path != None:
+            self.model_wrapper.lora_path = request.lora_path
             self.model_wrapper.apply_lora(
                 request.lora_path, request.lora_strength, self.device_accelerator
             )
+        else:
+            self.model_wrapper.lora_path = None
 
         handlers_by_request_type = {
             RequestType.Generation: self.handle_generation,
@@ -113,6 +130,7 @@ class RequestHandler:
     def load_model(self, model_type, model_path, chunk_size, sample_rate):
         try:
             # Ensure that model_type is a valid ModelType enum
+            print("loading model")
             if isinstance(model_type, str):
                 model_type = ModelType[model_type]
             assert isinstance(model_type, ModelType)
@@ -121,6 +139,7 @@ class RequestHandler:
             model_type_str = model_type.name
 
             # Dynamically import the required modules
+
             wrapper_module = __import__(
                 f"sample_diffusion.dance_diffusion.{model_type_str.lower()}.model",
                 fromlist=[f"{model_type_str}ModelWrapper"],
@@ -131,10 +150,12 @@ class RequestHandler:
             )
 
             # Dynamically create instances of the required classes
+
             Wrapper = getattr(wrapper_module, f"{model_type_str}ModelWrapper")
             Inference = getattr(inference_module, f"{model_type_str}Inference")
 
             self.model_wrapper = Wrapper()
+
             self.model_wrapper.load(
                 model_path,
                 self.device_accelerator,

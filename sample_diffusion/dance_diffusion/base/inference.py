@@ -48,6 +48,10 @@ class InferenceBase:
 
         return out
 
+    def __del__(self):
+        del self.model
+        del self.generator
+
     # def cc_randn(self, shape:tuple, seed:int, device:torch.device, dtype = None, rng_state_in:torch.Tensor = None):
 
     #     initial_rng_state = self.generator.get_state()
