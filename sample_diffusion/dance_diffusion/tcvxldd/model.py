@@ -7,7 +7,6 @@ from torch import nn
 from sample_diffusion.dance_diffusion.base.type import ModelType
 from typing import Callable
 
-from sample_diffusion.dance_diffusion.base.t5 import T5Embedder
 from sample_diffusion.dance_diffusion.base.adp_modules import (
     UNetCFG1d,
     T5Embedder,
