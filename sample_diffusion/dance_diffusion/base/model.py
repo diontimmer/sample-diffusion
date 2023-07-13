@@ -41,9 +41,9 @@ class ModelWrapperBase:
         lora = AudioLoRANetwork(
             self.module.diffusion_ema,
             target_modules=UNET1D_TARGET_REPLACE_MODULE,
-            multiplier=lora_strength,
+            multiplier=1,
             lora_dim=lora_dim,
-            alpha=1,
+            alpha=lora_strength,
             module_class=AudioLoRAModule,
             verbose=False,
         )
