@@ -109,11 +109,13 @@ class RequestHandler:
             and self.model_wrapper.lora_path != request.lora_path
         ):
             self.model_wrapper.lora_path = request.lora_path
+            self.model_wrapper.lora_strength = request.lora_strength
             self.model_wrapper.apply_lora(
                 request.lora_path, request.lora_strength, self.device_accelerator
             )
         else:
             self.model_wrapper.lora_path = None
+            self.model_wrapper.lora_strength = None
 
         handlers_by_request_type = {
             RequestType.Generation: self.handle_generation,
