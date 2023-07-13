@@ -92,7 +92,9 @@ class RequestHandler:
                 request.model_sample_rate,
             )
 
-        elif request.lora_path != self.model_wrapper.lora_path:
+        elif (request.lora_path != self.model_wrapper.lora_path) or (
+            request.lora_strength != self.model_wrapper.lora_strength
+        ):
             del self.inference, self.model_wrapper
             gc.collect()
             self.load_model(
@@ -102,7 +104,10 @@ class RequestHandler:
                 request.model_sample_rate,
             )
 
-        if request.lora_path != None:
+        if (
+            request.lora_path != None
+            and self.model_wrapper.lora_path != request.lora_path
+        ):
             self.model_wrapper.lora_path = request.lora_path
             self.model_wrapper.apply_lora(
                 request.lora_path, request.lora_strength, self.device_accelerator

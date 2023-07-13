@@ -38,6 +38,9 @@ class ModelWrapperBase:
             f"Applying LoRAW (RANK:{lora_dim}) with strength {lora_strength}: {lora_path}"
         )
 
+        # lora_strength can never be 0
+        lora_strength = max(lora_strength, 1e-6)
+
         lora = AudioLoRANetwork(
             self.module.diffusion_ema,
             target_modules=UNET1D_TARGET_REPLACE_MODULE,
