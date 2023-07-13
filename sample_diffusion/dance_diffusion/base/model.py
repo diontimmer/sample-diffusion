@@ -11,7 +11,7 @@ class ModelWrapperBase:
         # self.name: str = None
         self.path: str = None
         self.lora_path: str = None
-        self.lora_strength: float = None
+        self.lora_strength: float = 1.0
 
         self.device_accelerator: torch.device = None
 
