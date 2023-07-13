@@ -6,7 +6,7 @@ from typing import Tuple
 
 from .model import ModelWrapperBase
 
-from .t5 import T5Embedder
+from .adp_modules import T5Embedder
 
 
 class InferenceBase:
