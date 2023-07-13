@@ -95,9 +95,6 @@ class RequestHandler:
         elif (request.lora_path != self.model_wrapper.lora_path) or (
             request.lora_strength != self.model_wrapper.lora_strength
         ):
-            print(request.lora_path, self.model_wrapper.lora_path)
-            print(request.lora_strength, self.model_wrapper.lora_strength)
-
             del self.inference, self.model_wrapper
             gc.collect()
             self.load_model(
@@ -118,7 +115,7 @@ class RequestHandler:
             )
         else:
             self.model_wrapper.lora_path = None
-            self.model_wrapper.lora_strength = None
+            self.model_wrapper.lora_strength = 1.0
 
         handlers_by_request_type = {
             RequestType.Generation: self.handle_generation,
