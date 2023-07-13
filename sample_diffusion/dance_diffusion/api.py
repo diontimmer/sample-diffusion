@@ -92,17 +92,17 @@ class RequestHandler:
                 request.model_sample_rate,
             )
 
-        elif (request.lora_path != self.model_wrapper.lora_path) or (
-            request.lora_strength != self.model_wrapper.lora_strength
-        ):
-            del self.inference, self.model_wrapper
-            gc.collect()
-            self.load_model(
-                request.model_type,
-                request.model_path,
-                request.model_chunk_size,
-                request.model_sample_rate,
-            )
+        # elif (request.lora_path != self.model_wrapper.lora_path) or (
+        #     request.lora_strength != self.model_wrapper.lora_strength
+        # ):
+        #     del self.inference, self.model_wrapper
+        #     gc.collect()
+        #     self.load_model(
+        #         request.model_type,
+        #         request.model_path,
+        #         request.model_chunk_size,
+        #         request.model_sample_rate,
+        #     )
 
         if (
             request.lora_path != None
