@@ -161,7 +161,7 @@ class TCVXLDDModelWrapper(ModelWrapperBase):
         autoencoder = autoencoder.to(device_accelerator)
 
         self.module = TSCondLatentAudioDiffusion(
-            autoencoder, 32, 512, 2.5, **latent_diffusion_config
+            autoencoder, 32, 512, 1, **latent_diffusion_config
         )
         self.module.load_state_dict(file["state_dict"], strict=False)  # ?
         self.module.eval().requires_grad_(False)
