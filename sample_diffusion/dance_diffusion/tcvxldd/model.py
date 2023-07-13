@@ -72,14 +72,6 @@ class TSCondLatentAudioDiffusion(nn.Module):
             use_context_time=True,
         )
 
-        self.diffusion_ema = EMA(
-            self.diffusion,
-            beta=0.9999,
-            power=3 / 4,
-            update_every=1,
-            update_after_step=1,
-        )
-
         self.autoencoder = autoencoder
 
         self.autoencoder.requires_grad_(False)

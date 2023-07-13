@@ -24,6 +24,7 @@ setup(
         "diffusers",
         "transformers",
         "archisound",
+        "ema_pytorch",
     ],
     classifiers=[
         "Development Status :: 1 - Planning",
