@@ -7,11 +7,18 @@ from torch import nn
 from sample_diffusion.dance_diffusion.base.type import ModelType
 from typing import Callable
 
-from sample_diffusion.dance_diffusion.base.adp_modules import UNetCFG1d, T5Embedder
+from sample_diffusion.dance_diffusion.base.t5 import T5Embedder
+from sample_diffusion.dance_diffusion.base.adp_modules import (
+    UNetCFG1d,
+    T5Embedder,
+    NumberEmbedder,
+)
 from archisound import ArchiSound
 
+from ema_pytorch import EMA
 
-class CVXLatentAudioDiffusion(nn.Module):
+
+class TSCondLatentAudioDiffusion(nn.Module):
     def __init__(
         self,
         autoencoder: ArchiSound,
@@ -26,18 +33,28 @@ class CVXLatentAudioDiffusion(nn.Module):
         self.downsampling_ratio = aec_downsampling_ratio
         self.aec_divisor = aec_divisor
 
+        self.embedding_features = 768
+
+        self.max_seconds = 512
+
         embedding_max_len = 64
 
         self.embedder = T5Embedder(
             model="t5-base", max_length=embedding_max_len
         ).requires_grad_(False)
 
-        self.embedding_features = 768
+        self.second_start_embedder = nn.Embedding(
+            self.max_seconds + 1, self.embedding_features
+        )
+        self.second_total_embedder = nn.Embedding(
+            self.max_seconds + 1, self.embedding_features
+        )
+        self.timestamp_start_embedder = NumberEmbedder(features=self.embedding_features)
 
         self.diffusion = UNetCFG1d(
             in_channels=self.latent_dim,
             context_embedding_features=self.embedding_features,
-            context_embedding_max_length=embedding_max_len + 2,  # 2 for timestep embeds
+            context_embedding_max_length=embedding_max_len + 3,  # 3 for timing embeds
             channels=256,
             resnet_groups=8,
             kernel_multiplier_downsample=2,
@@ -45,25 +62,54 @@ class CVXLatentAudioDiffusion(nn.Module):
             factors=[1, 2, 4, 4],
             num_blocks=[3, 3, 3, 3],
             attentions=[0, 0, 3, 3, 3],
-            attention_heads=12,
+            attention_heads=16,
             attention_features=64,
             attention_multiplier=4,
             attention_use_rel_pos=True,
             attention_rel_pos_max_distance=2048,
-            attention_rel_pos_num_buckets=64,
+            attention_rel_pos_num_buckets=256,
             use_nearest_upsample=False,
             use_skip_scale=True,
             use_context_time=True,
         )
 
+        self.diffusion_ema = EMA(
+            self.diffusion,
+            beta=0.9999,
+            power=3 / 4,
+            update_every=1,
+            update_after_step=1,
+        )
+
         self.autoencoder = autoencoder
 
+        self.autoencoder.requires_grad_(False)
 
-class CVXLDDModelWrapper(ModelWrapperBase):
+        self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
+
+    def get_timing_embeddings(self, seconds_starts_totals):
+        seconds_starts_totals = torch.tensor(seconds_starts_totals).to("cpu")
+        seconds_starts_totals = seconds_starts_totals.clamp(0, self.max_seconds)
+        seconds_starts_totals = seconds_starts_totals.transpose(0, 1)
+
+        second_starts = seconds_starts_totals[0]
+        second_totals = seconds_starts_totals[1]
+
+        second_starts_embeds = self.second_start_embedder(second_starts).unsqueeze(1)
+        second_totals_embeds = self.second_total_embedder(second_totals).unsqueeze(1)
+
+        # Divide second_starts by second_totals to get t_starts, make sure it's cast to a float
+        t_starts = second_starts / second_totals.float()
+        t_starts_embeds = self.timestamp_start_embedder(t_starts).unsqueeze(1)
+
+        return second_starts_embeds, second_totals_embeds, t_starts_embeds
+
+
+class TCVXLDDModelWrapper(ModelWrapperBase):
     def __init__(self):
         super().__init__()
 
-        self.module: CVXLatentAudioDiffusion = None
+        self.module: TSCondLatentAudioDiffusion = None
         self.model: Callable = None
 
     def load(
@@ -77,9 +123,9 @@ class CVXLDDModelWrapper(ModelWrapperBase):
         default_model_config = dict(
             version=[0, 0, 1],
             model_info=dict(
-                name="Conditional Very Extra Latent Dance Diffusion Model",
+                name="TimeStamped Conditional Very Extra Latent Dance Diffusion Model",
                 description="v1.0",
-                type=ModelType.CVXLDD,
+                type=ModelType.TCVXLDD,
                 native_chunk_size=524288,
                 sample_rate=44100,
             ),
@@ -123,7 +169,7 @@ class CVXLDDModelWrapper(ModelWrapperBase):
 
         autoencoder = autoencoder.to(device_accelerator)
 
-        self.module = CVXLatentAudioDiffusion(
+        self.module = TSCondLatentAudioDiffusion(
             autoencoder, 32, 512, 2.5, **latent_diffusion_config
         )
         self.module.load_state_dict(file["state_dict"], strict=False)  # ?
@@ -137,6 +183,10 @@ class CVXLDDModelWrapper(ModelWrapperBase):
         self.ae_decoder = self.module.autoencoder.decode
 
         self.t5_embedder = self.module.embedder
+
+        self.second_start_embedder = self.module.second_start_embedder
+        self.second_total_embedder = self.module.second_total_embedder
+        self.timestamp_start_embedder = self.module.timestamp_start_embedder
 
         self.diffusion = (
             self.module.diffusion

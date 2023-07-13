@@ -175,7 +175,7 @@ class RequestHandler:
             raise ValueError("Unexpected error in load_model: " + str(e))
 
     def validate_model_type(self, model_type):
-        if model_type not in [e for e in ModelType]:
+        if model_type not in [e.value for e in ModelType]:
             raise ValueError(f"Unexpected ModelType: {model_type}")
 
     def handle_generation(self, request: Request, callback: Callable) -> Response:
