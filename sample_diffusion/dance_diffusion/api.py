@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from .base.type import ModelType
-from .base.model import ModelWrapperBase
+from .base.model import ModelWrapperBase, LatentModelWrapperBase
 from .base.inference import InferenceBase
 
 import gc
@@ -39,6 +39,8 @@ class Request:
         model_type: ModelType,
         model_chunk_size: int,
         model_sample_rate: int,
+        aec_path: str = None,
+        aec_config: dict = None,
         **kwargs,
     ):
         self.request_type = request_type
@@ -48,6 +50,8 @@ class Request:
         self.model_type = model_type
         self.model_chunk_size = model_chunk_size
         self.model_sample_rate = model_sample_rate
+        self.aec_path = aec_path
+        self.aec_config = aec_config
         self.kwargs = kwargs
 
 
@@ -81,6 +85,8 @@ class RequestHandler:
                 request.model_path,
                 request.model_chunk_size,
                 request.model_sample_rate,
+                request.aec_path,
+                request.aec_config,
             )
         elif request.model_path != self.model_wrapper.path:
             del self.inference, self.model_wrapper
@@ -90,6 +96,8 @@ class RequestHandler:
                 request.model_path,
                 request.model_chunk_size,
                 request.model_sample_rate,
+                request.aec_path,
+                request.aec_config,
             )
 
         elif (request.lora_path != self.model_wrapper.lora_path) or (
@@ -102,6 +110,8 @@ class RequestHandler:
                 request.model_path,
                 request.model_chunk_size,
                 request.model_sample_rate,
+                request.aec_path,
+                request.aec_config,
             )
 
         if (
@@ -134,7 +144,7 @@ class RequestHandler:
 
         return Response(tensor_result)
 
-    def load_model(self, model_type, model_path, chunk_size, sample_rate):
+    def load_model(self, model_type, model_path, chunk_size, sample_rate, aec_path, aec_config):
         try:
             # Ensure that model_type is a valid ModelType enum
             print("loading model")
@@ -163,13 +173,24 @@ class RequestHandler:
 
             self.model_wrapper = Wrapper()
 
-            self.model_wrapper.load(
-                model_path,
-                self.device_accelerator,
-                self.optimize_memory_use,
-                chunk_size,
-                sample_rate,
-            )
+            if isinstance(self.model_wrapper, LatentModelWrapperBase):
+                self.model_wrapper.load(
+                    model_path,
+                    self.device_accelerator,
+                    self.optimize_memory_use,
+                    chunk_size,
+                    sample_rate,
+                    aec_path,
+                    aec_config,
+                )
+            else:
+                self.model_wrapper.load(
+                    model_path,
+                    self.device_accelerator,
+                    self.optimize_memory_use,
+                    chunk_size,
+                    sample_rate,
+                )
             self.inference = Inference(
                 self.device_accelerator,
                 self.device_offload,
