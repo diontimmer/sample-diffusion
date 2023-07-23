@@ -1,4 +1,4 @@
-from sample_diffusion.dance_diffusion.base.model import ModelWrapperBase
+from sample_diffusion.dance_diffusion.base.model import LatentModelWrapperBase
 
 import torch
 import numpy as np
@@ -12,28 +12,20 @@ from sample_diffusion.dance_diffusion.base.adp_modules import (
     T5Embedder,
     NumberEmbedder,
 )
-from archisound import ArchiSound
-
-from ema_pytorch import EMA
-
 
 class TSCondLatentAudioDiffusion(nn.Module):
     def __init__(
         self,
-        autoencoder: ArchiSound,
-        aec_latent_dim: int,
-        aec_downsampling_ratio: int,
-        aec_divisor: float,
+        autoencoder,
         **model_kwargs,
     ):
         super().__init__()
-
-        self.latent_dim = aec_latent_dim
-        self.downsampling_ratio = aec_downsampling_ratio
-        self.aec_divisor = aec_divisor
+        
+        self.autoencoder = autoencoder
+        self.latent_dim = self.autoencoder.latent_dim
+        self.downsampling_ratio = self.autoencoder.downsampling_ratio
 
         self.embedding_features = 768
-
         self.max_seconds = 512
 
         embedding_max_len = 64
@@ -72,10 +64,6 @@ class TSCondLatentAudioDiffusion(nn.Module):
             use_context_time=True,
         )
 
-        self.autoencoder = autoencoder
-
-        self.autoencoder.requires_grad_(False)
-
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
 
     def get_timing_embeddings(self, seconds_starts_totals):
@@ -96,7 +84,7 @@ class TSCondLatentAudioDiffusion(nn.Module):
         return second_starts_embeds, second_totals_embeds, t_starts_embeds
 
 
-class TCVXLDDModelWrapper(ModelWrapperBase):
+class TCVXLDDModelWrapper(LatentModelWrapperBase):
     def __init__(self):
         super().__init__()
 
@@ -110,6 +98,8 @@ class TCVXLDDModelWrapper(ModelWrapperBase):
         optimize_memory_use: bool = False,
         chunk_size: int = None,
         sample_rate: int = None,
+        aec_path: str = None,
+        aec_config: dict = None,
     ):
         default_model_config = dict(
             version=[0, 0, 1],
@@ -122,7 +112,7 @@ class TCVXLDDModelWrapper(ModelWrapperBase):
             ),
             latent_diffusion_config=dict(
                 io_channels=32,
-                n_attn_layers=4,
+                n_attn_layers=9,
                 channels=[512] * 6 + [1024] * 4,
                 depth=10,
             ),
@@ -155,8 +145,7 @@ class TCVXLDDModelWrapper(ModelWrapperBase):
         # autoencoder_config = model_config.get('autoencoder_config')
         latent_diffusion_config = model_config.get("latent_diffusion_config")
 
-        # autoencoder = AudioAutoencoder(**autoencoder_config).requires_grad_(False)
-        autoencoder = ArchiSound.from_pretrained("dmae1d-ATC32-v3")
+        autoencoder = self.load_autoencoder(aec_path, aec_config)
 
         autoencoder = autoencoder.to(device_accelerator)
 

@@ -1,4 +1,4 @@
-from sample_diffusion.dance_diffusion.base.model import ModelWrapperBase
+from sample_diffusion.dance_diffusion.base.model import LatentModelWrapperBase
 
 import torch
 import numpy as np
@@ -8,7 +8,6 @@ from sample_diffusion.dance_diffusion.base.type import ModelType
 from typing import Callable
 
 from sample_diffusion.dance_diffusion.base.adp_modules import UNetCFG1d, T5Embedder
-from archisound import ArchiSound
 
 
 class CVXLatentAudioDiffusion(nn.Module):
@@ -22,9 +21,9 @@ class CVXLatentAudioDiffusion(nn.Module):
     ):
         super().__init__()
 
-        self.latent_dim = aec_latent_dim
-        self.downsampling_ratio = aec_downsampling_ratio
-        self.aec_divisor = aec_divisor
+        self.autoencoder = autoencoder
+        self.latent_dim = self.autoencoder.latent_dim
+        self.downsampling_ratio = self.autoencoder.downsampling_ratio
 
         embedding_max_len = 64
 
@@ -56,10 +55,8 @@ class CVXLatentAudioDiffusion(nn.Module):
             use_context_time=True,
         )
 
-        self.autoencoder = autoencoder
 
-
-class CVXLDDModelWrapper(ModelWrapperBase):
+class CVXLDDModelWrapper(LatentModelWrapperBase):
     def __init__(self):
         super().__init__()
 
@@ -73,6 +70,8 @@ class CVXLDDModelWrapper(ModelWrapperBase):
         optimize_memory_use: bool = False,
         chunk_size: int = None,
         sample_rate: int = None,
+        aec_path: str = None,
+        aec_config: dict = None,
     ):
         default_model_config = dict(
             version=[0, 0, 1],
@@ -119,7 +118,7 @@ class CVXLDDModelWrapper(ModelWrapperBase):
         latent_diffusion_config = model_config.get("latent_diffusion_config")
 
         # autoencoder = AudioAutoencoder(**autoencoder_config).requires_grad_(False)
-        autoencoder = ArchiSound.from_pretrained("dmae1d-ATC32-v3")
+        autoencoder = self.load_autoencoder(aec_path, aec_config)
 
         autoencoder = autoencoder.to(device_accelerator)
 

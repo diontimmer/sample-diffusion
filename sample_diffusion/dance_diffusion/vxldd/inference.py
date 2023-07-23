@@ -67,7 +67,7 @@ class VXLDDInference(InferenceBase):
             x_0 = sampler.sample(model, x_T, step_list, callback, **sampler_args)
 
         with self.offload_context(self.model.ae_decoder):
-            return self.model.ae_decoder(x_0, num_steps=20)
+            return self.model.ae_decoder(x_0)
 
     def generate_variation(
         self,

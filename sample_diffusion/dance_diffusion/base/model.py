@@ -1,4 +1,5 @@
 import torch
+from harmonai_tools.models.autoencoders import create_autoencoder_from_config
 from sample_diffusion.diffusion_library.audio_lora import (
     AudioLoRANetwork,
     AudioLoRAModule,
@@ -54,3 +55,11 @@ class ModelWrapperBase:
         lora.to(device=device)
         lora.apply_to()
         lora.load_weights(lora_path)
+
+class LatentModelWrapperBase(ModelWrapperBase):
+    def load_autoencoder(self, aec_path, aec_config):
+        autoencoder = create_autoencoder_from_config(aec_config)
+        pretrained = torch.load(aec_path, map_location="cpu")
+        autoencoder.load_state_dict(pretrained["state_dict"])
+        del pretrained
+        return autoencoder
