@@ -15,6 +15,7 @@ from .diffusion_library.scheduler import SchedulerType
 from transformers import logging as transformers_logging
 import json
 
+
 def main():
     args = parse_cli_args()
     run(args)
@@ -55,8 +56,9 @@ def run(args, request_handler=None):
     )
     device_accelerator = torch.device(device_type_accelerator)
     device_offload = torch.device(args.get("device_offload"))
-    with open(args.get("autoencoder_config")) as f:
-        args["autoencoder_config"] = json.load(f)
+    if args.get("autoencoder"):
+        with open(args.get("autoencoder_config")) as f:
+            args["autoencoder_config"] = json.load(f)
 
     crop = (
         lambda audio: crop_audio(audio, args.get("chunk_size"), args.get("crop_offset"))
@@ -204,7 +206,7 @@ def parse_cli_args():
         type=str,
         help="Path to the autoencoder config json to be used.",
         default=None,
-    )    
+    )
     parser.add_argument(
         "--model_type",
         type=ModelType,
@@ -335,7 +337,6 @@ def parse_cli_args():
         default="sample_diffusion_output",
         help="The folder to save the output to.",
     )
-
 
     args = parser.parse_args()
 
