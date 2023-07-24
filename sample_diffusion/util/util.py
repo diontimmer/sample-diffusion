@@ -1,7 +1,32 @@
 import os
 import torch
-import torchaudio
 from k_diffusion.utils import append_dims
+import torchaudio
+import numpy as np
+import librosa
+
+
+def trim_silence_from_tensor(audio_tensor, top_db=20):
+    # Ensure audio tensor is on cpu
+    audio_tensor = audio_tensor.cpu()
+
+    # Convert tensor to numpy for librosa
+    audio_np = audio_tensor.numpy()
+
+    # Detect non-silent intervals in the first channel
+    non_silent_intervals = librosa.effects.split(audio_np[0], top_db=top_db)
+
+    # Trim silence from all channels
+    processed_channels = []
+    for channel in audio_np:
+        trimmed = np.concatenate(
+            [channel[start:end] for start, end in non_silent_intervals]
+        )
+        trimmed_tensor = torch.from_numpy(trimmed)
+        processed_channels.append(trimmed_tensor)
+
+    # Stack all channels back into one tensor
+    return torch.stack(processed_channels)
 
 
 def tensor_slerp_2D(a: torch.Tensor, b: torch.Tensor, t: float):
@@ -32,7 +57,13 @@ def load_audio(device, audio_path: str, sample_rate):
     return audio.to(device)
 
 
-def save_audio(audio_out, output_path: str, sample_rate, id_str: str = None):
+def save_audio(
+    audio_out,
+    output_path: str,
+    sample_rate,
+    id_str: str = None,
+    trim_silence: bool = True,
+):
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
@@ -51,6 +82,9 @@ def save_audio(audio_out, output_path: str, sample_rate, id_str: str = None):
         open(output_file, "a").close()
 
         output = sample.cpu()
+
+        if trim_silence:
+            output = trim_silence_from_tensor(output)
 
         torchaudio.save(output_file, output, sample_rate)
         paths.append(output_file)

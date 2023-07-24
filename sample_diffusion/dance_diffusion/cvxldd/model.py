@@ -13,7 +13,7 @@ from sample_diffusion.dance_diffusion.base.adp_modules import UNetCFG1d, T5Embed
 class CVXLatentAudioDiffusion(nn.Module):
     def __init__(
         self,
-        autoencoder: ArchiSound,
+        autoencoder,
         **model_kwargs,
     ):
         super().__init__()
@@ -33,7 +33,7 @@ class CVXLatentAudioDiffusion(nn.Module):
         self.diffusion = UNetCFG1d(
             in_channels=self.latent_dim,
             context_embedding_features=self.embedding_features,
-            context_embedding_max_length=embedding_max_len + 2,  # 2 for timestep embeds
+            context_embedding_max_length=embedding_max_len,
             channels=256,
             resnet_groups=8,
             kernel_multiplier_downsample=2,
@@ -41,7 +41,7 @@ class CVXLatentAudioDiffusion(nn.Module):
             factors=[1, 2, 4, 4],
             num_blocks=[3, 3, 3, 3],
             attentions=[0, 0, 3, 3, 3],
-            attention_heads=12,
+            attention_heads=16,
             attention_features=64,
             attention_multiplier=4,
             attention_use_rel_pos=True,
@@ -119,9 +119,7 @@ class CVXLDDModelWrapper(LatentModelWrapperBase):
 
         autoencoder = autoencoder.to(device_accelerator)
 
-        self.module = CVXLatentAudioDiffusion(
-            autoencoder, **latent_diffusion_config
-        )
+        self.module = CVXLatentAudioDiffusion(autoencoder, **latent_diffusion_config)
         self.module.load_state_dict(file["state_dict"], strict=False)  # ?
         self.module.eval().requires_grad_(False)
 

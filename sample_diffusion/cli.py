@@ -137,6 +137,7 @@ def run(args, request_handler=None):
             f"{args.get('output')}/{args.get('model_type')}/{args.get('mode')}/",
             args.get("sample_rate"),
             f"{seed}",
+            args.get("trim_silence"),
         )
         paths.extend(loop_paths)
     return paths
@@ -336,6 +337,12 @@ def parse_cli_args():
         type=str,
         default="sample_diffusion_output",
         help="The folder to save the output to.",
+    )
+    parser.add_argument(
+        "--trim_silence",
+        type=str2bool,
+        default=True,
+        help="Trim silence from the beginning and end of the output.",
     )
 
     args = parser.parse_args()
