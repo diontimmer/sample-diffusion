@@ -58,7 +58,7 @@ class ModelWrapperBase:
 
 class LatentModelWrapperBase(ModelWrapperBase):
     def load_autoencoder(self, aec_path, aec_config):
-        autoencoder = create_autoencoder_from_config(aec_config)
+        autoencoder = create_autoencoder_from_config(aec_config['model'])
         pretrained = torch.load(aec_path, map_location="cpu")
         autoencoder.load_state_dict(pretrained["state_dict"])
         del pretrained

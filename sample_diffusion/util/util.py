@@ -38,6 +38,9 @@ def save_audio(audio_out, output_path: str, sample_rate, id_str: str = None):
 
     paths = []
 
+    if audio_out.dtype == torch.float16:
+        audio_out = audio_out.float()
+
     for ix, sample in enumerate(audio_out):
         output_file = os.path.join(
             output_path,

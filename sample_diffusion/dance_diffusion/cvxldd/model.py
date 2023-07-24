@@ -14,9 +14,6 @@ class CVXLatentAudioDiffusion(nn.Module):
     def __init__(
         self,
         autoencoder: ArchiSound,
-        aec_latent_dim: int,
-        aec_downsampling_ratio: int,
-        aec_divisor: float,
         **model_kwargs,
     ):
         super().__init__()
@@ -123,7 +120,7 @@ class CVXLDDModelWrapper(LatentModelWrapperBase):
         autoencoder = autoencoder.to(device_accelerator)
 
         self.module = CVXLatentAudioDiffusion(
-            autoencoder, 32, 512, 2.5, **latent_diffusion_config
+            autoencoder, **latent_diffusion_config
         )
         self.module.load_state_dict(file["state_dict"], strict=False)  # ?
         self.module.eval().requires_grad_(False)

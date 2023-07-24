@@ -11,7 +11,7 @@ from sample_diffusion.dance_diffusion.base.latent_unet import DiffusionUnet1D
 
 
 class VXLatentAudioDiffusion(nn.Module):
-    def __init__(self, autoencoder: ArchiSound, **model_kwargs):
+    def __init__(self, autoencoder, **model_kwargs):
         super().__init__()
 
         default_model_kwargs = {
